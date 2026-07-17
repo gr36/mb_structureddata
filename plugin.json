@@ -1,0 +1,40 @@
+{
+    "version": "1.0",
+    "title": "Structured Data",
+    "description": "Adds schema.org JSON-LD structured data to every page so search engines and AI assistants can understand your site, posts, and author.",
+    "includes": [
+        "structured_data.html"
+    ],
+    "fields": [
+        {
+            "field": "params.sd_author_name",
+            "label": "Author name (defaults to your Micro.blog account name)",
+            "placeholder": "Jane Appleseed"
+        },
+        {
+            "field": "params.sd_author_url",
+            "label": "Author URL (defaults to your site URL)",
+            "placeholder": "https://example.com/about"
+        },
+        {
+            "field": "params.sd_same_as",
+            "label": "Extra profile URLs for sameAs, comma-separated (Mastodon, LinkedIn, etc.)",
+            "placeholder": "https://mastodon.social/@you, https://www.linkedin.com/in/you"
+        },
+        {
+            "field": "params.sd_publisher",
+            "label": "Publisher or organization name (leave blank to publish as yourself)",
+            "placeholder": "Example Media Ltd"
+        },
+        {
+            "field": "params.sd_logo",
+            "label": "Publisher logo URL (used when a publisher name is set)",
+            "placeholder": "https://example.com/logo.png"
+        },
+        {
+            "field": "params.sd_include_body",
+            "label": "Include the full post text (articleBody) so AI crawlers get clean plain-text content",
+            "type": "boolean"
+        }
+    ]
+}

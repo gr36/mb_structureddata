@@ -1,0 +1,138 @@
+{{- /* Structured Data plug-in for Micro.blog.
+     Emits schema.org JSON-LD into the head of every page:
+       home            -> WebSite
+       posts           -> BlogPosting
+       static pages    -> WebPage
+       category pages  -> CollectionPage
+     All values are built as Hugo dicts and serialized with jsonify,
+     which escapes < > & so the script tag cannot be broken out of. */ -}}
+{{- $site := .Site -}}
+{{- $lang := $site.LanguageCode | default "en" -}}
+
+{{- /* ---- Author (Person) ---- */ -}}
+{{- $authorName := $site.Params.sd_author_name | default $site.Params.author.name | default $site.Title -}}
+{{- $authorURL := $site.Params.sd_author_url | default $site.BaseURL -}}
+{{- $author := dict "@type" "Person" "@id" (printf "%s#author" $site.BaseURL) "name" $authorName "url" $authorURL -}}
+{{- with $site.Params.author.avatar -}}
+  {{- $author = merge $author (dict "image" .) -}}
+{{- end -}}
+
+{{- $sameAs := slice -}}
+{{- with $site.Params.author.username -}}
+  {{- $sameAs = $sameAs | append (printf "https://micro.blog/%s" .) -}}
+{{- end -}}
+{{- with $site.Params.twitter_username -}}
+  {{- $sameAs = $sameAs | append (printf "https://twitter.com/%s" .) -}}
+{{- end -}}
+{{- with $site.Params.github_username -}}
+  {{- $sameAs = $sameAs | append (printf "https://github.com/%s" .) -}}
+{{- end -}}
+{{- with $site.Params.instagram_username -}}
+  {{- $sameAs = $sameAs | append (printf "https://instagram.com/%s" .) -}}
+{{- end -}}
+{{- with $site.Params.sd_same_as -}}
+  {{- range split . "," -}}
+    {{- $url := trim . " \n\r\t" -}}
+    {{- if $url -}}
+      {{- $sameAs = $sameAs | append $url -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- with $sameAs -}}
+  {{- $author = merge $author (dict "sameAs" .) -}}
+{{- end -}}
+
+{{- /* ---- Publisher: the author, unless an organization name is configured ---- */ -}}
+{{- $publisher := $author -}}
+{{- with $site.Params.sd_publisher -}}
+  {{- $publisher = dict "@type" "Organization" "name" . "url" $site.BaseURL -}}
+  {{- with $site.Params.sd_logo -}}
+    {{- $publisher = merge $publisher (dict "logo" (dict "@type" "ImageObject" "url" .)) -}}
+  {{- end -}}
+{{- end -}}
+
+{{- if .IsHome -}}
+  {{- $schema := dict
+        "@context" "https://schema.org"
+        "@type" "WebSite"
+        "name" $site.Title
+        "url" $site.BaseURL
+        "inLanguage" $lang
+        "author" $author
+        "publisher" $publisher -}}
+  {{- $description := trim ($site.Params.description | plainify | htmlUnescape) " \n" -}}
+  {{- with $description -}}
+    {{- $schema = merge $schema (dict "description" .) -}}
+  {{- end -}}
+<script type="application/ld+json">{{ $schema | jsonify | safeJS }}</script>
+{{- else if eq .Type "post" -}}
+  {{- /* Micro.blog posts can be title-less; fall back to the opening text. */ -}}
+  {{- $headline := trim (.Title | plainify | htmlUnescape) " \n" -}}
+  {{- if not $headline -}}
+    {{- /* truncate re-escapes entities, so unescape again afterwards */ -}}
+    {{- $headline = trim (.Content | plainify | htmlUnescape | truncate 100 | htmlUnescape) " \n" -}}
+  {{- end -}}
+  {{- $schema := dict
+        "@context" "https://schema.org"
+        "@type" "BlogPosting"
+        "mainEntityOfPage" (dict "@type" "WebPage" "@id" .Permalink)
+        "url" .Permalink
+        "headline" $headline
+        "datePublished" (.Date.Format "2006-01-02T15:04:05-07:00")
+        "dateModified" (.Lastmod.Format "2006-01-02T15:04:05-07:00")
+        "inLanguage" $lang
+        "wordCount" .WordCount
+        "author" $author
+        "publisher" $publisher -}}
+  {{- $description := trim (.Summary | plainify | htmlUnescape | truncate 500 | htmlUnescape) " \n" -}}
+  {{- with $description -}}
+    {{- $schema = merge $schema (dict "description" .) -}}
+  {{- end -}}
+  {{- /* Images: Micro.blog fills .Params.photos for photo posts; otherwise
+       grab the first inline image from the rendered content. */ -}}
+  {{- $images := slice -}}
+  {{- range .Params.photos -}}
+    {{- $images = $images | append (. | absURL) -}}
+  {{- end -}}
+  {{- if not $images -}}
+    {{- range findRE `<img[^>]+src="[^"]+"` .Content 1 -}}
+      {{- $src := replaceRE `^.*src="([^"]+)".*$` "$1" . -}}
+      {{- $images = $images | append ($src | absURL) -}}
+    {{- end -}}
+  {{- end -}}
+  {{- with $images -}}
+    {{- $schema = merge $schema (dict "image" .) -}}
+  {{- end -}}
+  {{- with .Params.categories -}}
+    {{- $schema = merge $schema (dict "keywords" .) -}}
+  {{- end -}}
+  {{- if $site.Params.sd_include_body -}}
+    {{- $body := trim (.Plain | htmlUnescape) " \n" -}}
+    {{- with $body -}}
+      {{- $schema = merge $schema (dict "articleBody" .) -}}
+    {{- end -}}
+  {{- end -}}
+<script type="application/ld+json">{{ $schema | jsonify | safeJS }}</script>
+{{- else if eq .Kind "page" -}}
+  {{- $schema := dict
+        "@context" "https://schema.org"
+        "@type" "WebPage"
+        "name" (.Title | default $site.Title)
+        "url" .Permalink
+        "inLanguage" $lang
+        "author" $author -}}
+  {{- $description := trim (.Summary | plainify | htmlUnescape | truncate 500 | htmlUnescape) " \n" -}}
+  {{- with $description -}}
+    {{- $schema = merge $schema (dict "description" .) -}}
+  {{- end -}}
+<script type="application/ld+json">{{ $schema | jsonify | safeJS }}</script>
+{{- else if in (slice "section" "taxonomy" "term") .Kind -}}
+  {{- $schema := dict
+        "@context" "https://schema.org"
+        "@type" "CollectionPage"
+        "name" (.Title | default $site.Title)
+        "url" .Permalink
+        "inLanguage" $lang
+        "isPartOf" (dict "@type" "WebSite" "name" $site.Title "url" $site.BaseURL) -}}
+<script type="application/ld+json">{{ $schema | jsonify | safeJS }}</script>
+{{- end -}}
