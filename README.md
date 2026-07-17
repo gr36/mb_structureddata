@@ -32,9 +32,14 @@ After installing, a **Settings** button for the plug-in appears on the **Design 
 
 > **Note:** if you add the repository as a *theme* instead of a plug-in, Micro.blog ignores `plugin.json` — you get no settings screen and no structured data. Make sure it shows up in your Plug-ins list.
 
-### Custom themes
+### How it injects — and the custom theme fallback
 
-Micro.blog's built-in themes render plug-in partials inside the page `<head>` automatically (via `microblog_head.html`). If you use a **custom theme with its own hand-written head template**, it must include the standard plug-in loop or no HTML plug-in can inject anything. Check your theme's head template for this, and add it just before `</head>` if it's missing:
+The plug-in delivers structured data through two channels, so it works with any theme:
+
+1. **Hugo partial (preferred).** Micro.blog's built-in themes render plug-in HTML partials inside the page `<head>` (via `microblog_head.html`), which gives crawlers the JSON-LD directly in the served HTML — visible to every crawler, including ones that don't run JavaScript.
+2. **JavaScript fallback.** Some custom themes with hand-written head templates never render plug-in HTML partials. For those, the plug-in also ships a small script (loaded through the plug-in JS include, which nearly all themes render) that rebuilds the same JSON-LD in the browser from your page's existing metadata (`og:` / `article:` meta tags, `rel="me"` links, and your `feed.json`) and injects it into the head. It automatically does nothing when the partial already ran, so you never get duplicates. Google's crawler executes JavaScript and indexes injected JSON-LD.
+
+For the best result on a custom theme (server-rendered markup that non-JavaScript AI crawlers can also read, plus the `articleBody` and keywords features), add the standard plug-in loop to your theme's head template just before `</head>`:
 
 ```go-html-template
 {{ range $filename := .Site.Params.plugins_html }}
@@ -60,7 +65,7 @@ All settings are optional; sensible defaults come from your Micro.blog account.
 ## Troubleshooting
 
 - **No Settings button on the Plug-ins page** — the repo was probably added as a theme, not a plug-in. Remove it and reinstall via **Edit Custom Themes → New Plug-in** with the clone URL.
-- **Plug-in installed but no `<script type="application/ld+json">` in the page source** — your custom theme is missing the `plugins_html` loop; see "Custom themes" above.
+- **Plug-in installed but no `<script type="application/ld+json">` in the raw page source** — your custom theme is missing the `plugins_html` loop, so the JavaScript fallback is doing the work instead. The markup is injected after the page loads: check with your browser's element inspector or the [Google Rich Results Test](https://search.google.com/test/rich-results) (which runs JavaScript), not just "view source". See "How it injects" above to enable server-side rendering too.
 - **Updated the plug-in but the site didn't change** — Micro.blog clones the repository when the plug-in is added and doesn't auto-pull. Uninstall and re-add the plug-in (or install the newer version when prompted after a version bump).
 
 ## Verifying it works

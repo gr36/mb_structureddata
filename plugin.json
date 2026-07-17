@@ -1,9 +1,10 @@
 {
-    "version": "1.0",
+    "version": "1.1",
     "title": "Structured Data",
     "description": "Adds schema.org JSON-LD structured data to every page so search engines and AI assistants can understand your site, posts, and author.",
     "includes": [
-        "structured_data.html"
+        "structured_data.html",
+        "/structured-data.js"
     ],
     "fields": [
         {
