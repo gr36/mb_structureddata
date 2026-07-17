@@ -64,6 +64,7 @@ All settings are optional; sensible defaults come from your Micro.blog account.
 
 ## Troubleshooting
 
+- **No Settings button and no markup at all** — if you're installing from your own copy of this repository, it must be **public**. Micro.blog can't clone a private repo, and it fails silently: the plug-in appears in your list, but no settings screen or templates are loaded.
 - **No Settings button on the Plug-ins page** — the repo was probably added as a theme, not a plug-in. Remove it and reinstall via **Edit Custom Themes → New Plug-in** with the clone URL.
 - **Plug-in installed but no `<script type="application/ld+json">` in the raw page source** — your custom theme is missing the `plugins_html` loop, so the JavaScript fallback is doing the work instead. The markup is injected after the page loads: check with your browser's element inspector or the [Google Rich Results Test](https://search.google.com/test/rich-results) (which runs JavaScript), not just "view source". See "How it injects" above to enable server-side rendering too.
 - **Updated the plug-in but the site didn't change** — Micro.blog clones the repository when the plug-in is added and doesn't auto-pull. Uninstall and re-add the plug-in (or install the newer version when prompted after a version bump).
