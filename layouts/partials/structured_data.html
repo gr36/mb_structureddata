@@ -6,6 +6,9 @@
        category pages  -> CollectionPage
      All values are built as Hugo dicts and serialized with jsonify,
      which escapes < > & so the script tag cannot be broken out of. */ -}}
+{{- /* Themes can end up with duplicate plug-in include entries; render once per page. */ -}}
+{{- if not (.Scratch.Get "mb_structured_data_rendered") -}}
+{{- .Scratch.Set "mb_structured_data_rendered" true -}}
 {{- $site := .Site -}}
 {{- $lang := $site.LanguageCode | default "en" -}}
 
@@ -135,4 +138,5 @@
         "inLanguage" $lang
         "isPartOf" (dict "@type" "WebSite" "name" $site.Title "url" $site.BaseURL) -}}
 <script type="application/ld+json">{{ $schema | jsonify | safeJS }}</script>
+{{- end -}}
 {{- end -}}
